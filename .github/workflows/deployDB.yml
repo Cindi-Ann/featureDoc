@@ -78,7 +78,7 @@ jobs:
           -e PGUSER=${{ vars.DB_MASTER_USERNAME }} \
           postgres:alpine \
           psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} \
-          -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'featureDoc') THEN CREATE DATABASE featureDoc; END IF; END \$\$;"
+          -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'FeatureDoc') THEN CREATE DATABASE FeatureDoc; END IF; END \$\$;"
     
     - name: Debug Connection String
       run: |
