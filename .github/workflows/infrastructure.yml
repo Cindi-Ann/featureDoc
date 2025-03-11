@@ -26,13 +26,14 @@ jobs:
           VPC_ID=$(aws ec2 create-vpc --cidr-block 10.0.0.0/16 --query 'Vpc.VpcId' --output text)
           aws ec2 modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-hostnames
           echo "VPC_ID=$VPC_ID" >> $GITHUB_OUTPUT
+          aws ec2 wait vpc-available --vpc-ids $VPC_ID
 
       - name: Create Internet Gateway
         id: create-igw
         run: |
           IGW_ID=$(aws ec2 create-internet-gateway --query 'InternetGateway.InternetGatewayId' --output text)
-          echo "IGW_ID=$IGW_ID" >> $GITHUB_OUTPUT
           aws ec2 attach-internet-gateway --vpc-id ${{ steps.create-vpc.outputs.VPC_ID }} --internet-gateway-id $IGW_ID
+          echo "IGW_ID=$IGW_ID" >> $GITHUB_OUTPUT
 
       - name: Create Subnets
         id: create-subnets
@@ -50,14 +51,16 @@ jobs:
             --query 'Subnet.SubnetId' --output text)
           
           echo "SUBNET_IDS=$SUBNET1_ID,$SUBNET2_ID" >> $GITHUB_OUTPUT
+          aws ec2 wait subnet-available --subnet-ids $SUBNET1_ID $SUBNET2_ID
 
       - name: Create Route Table
         id: create-route-table
         run: |
           ROUTE_TABLE_ID=$(aws ec2 create-route-table --vpc-id ${{ steps.create-vpc.outputs.VPC_ID }} --query 'RouteTable.RouteTableId' --output text)
           aws ec2 create-route --route-table-id $ROUTE_TABLE_ID --destination-cidr-block 0.0.0.0/0 --gateway-id ${{ steps.create-igw.outputs.IGW_ID }}
-          aws ec2 associate-route-table --route-table-id $ROUTE_TABLE_ID --subnet-id ${{ steps.create-subnets.outputs.SUBNET1_ID }}
-          aws ec2 associate-route-table --route-table-id $ROUTE_TABLE_ID --subnet-id ${{ steps.create-subnets.outputs.SUBNET2_ID }}
+          aws ec2 associate-route-table --route-table-id $ROUTE_TABLE_ID --subnet-id $SUBNET1_ID
+          aws ec2 associate-route-table --route-table-id $ROUTE_TABLE_ID --subnet-id $SUBNET2_ID
+          aws ec2 wait route-table-available --route-table-ids $ROUTE_TABLE_ID
 
       - name: Create Security Group
         id: create-sg
@@ -67,6 +70,9 @@ jobs:
             --description "Security group for PostgreSQL" \
             --vpc-id ${{ steps.create-vpc.outputs.VPC_ID }} \
             --query 'GroupId' --output text)
+          
+          # Wait for security group to be created
+          aws ec2 wait security-group-exists --group-ids $SG_ID
           
           # Allow PostgreSQL access
           aws ec2 authorize-security-group-ingress \
