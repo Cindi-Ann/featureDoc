@@ -76,12 +76,12 @@ jobs:
         docker run --rm \
           -e PGPASSWORD=${{ secrets.DB_MASTER_PASSWORD }} \
           postgres:alpine \
-          psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -c "\
-          DO \$\$ BEGIN \
-            IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'featureDoc') THEN \
-              CREATE DATABASE featureDoc; \
-            END IF; \
-          END \$\$;"
+          psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -v -c "\
+          SELECT 1 FROM pg_database WHERE datname = 'featureDoc' LIMIT 1;" | grep -q 1 || \
+          docker run --rm \
+          -e PGPASSWORD=${{ secrets.DB_MASTER_PASSWORD }} \
+          postgres:alpine \
+          psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -v -c "CREATE DATABASE featureDoc;"
 
     - name: Debug Connection String
       run: |
