@@ -19,14 +19,22 @@ jobs:
         aws-session-token:  ${{ secrets.AWS_SESSION_TOKEN }}
         aws-region: ${{ vars.AWS_REGION }}
         
-    - name: Create DBSubnet Group
+    - name: Create DBSubnet Group if not exists
       id: db-subnet-group
       run: |
-        aws rds create-db-subnet-group \
-        --db-subnet-group-name featuredoc-test-subnet \
-        --db-subnet-group-description "Subnet group for featuredoc" \
-        --subnet-ids subnet-0e6b20217d3f533c0 subnet-0162941dbeab9472e  # Provide your subnet IDs here
-      
+        # Check if the DBSubnetGroup already exists
+        EXISTING_SUBNET_GROUP=$(aws rds describe-db-subnet-groups --db-subnet-group-name featuredoc-test-subnet --query 'DBSubnetGroups[0].DBSubnetGroupName' --output text)
+        
+        if [[ "$EXISTING_SUBNET_GROUP" == "featuredoc-test-subnet" ]]; then
+          echo "DB Subnet Group 'featuredoc-test-subnet' already exists. Skipping creation."
+        else
+          echo "Creating DB Subnet Group 'featuredoc-test-subnet'."
+          aws rds create-db-subnet-group \
+            --db-subnet-group-name featuredoc-test-subnet \
+            --db-subnet-group-description "Subnet group for featuredoc" \
+            --subnet-ids subnet-0e6b20217d3f533c0 subnet-0162941dbeab9472e
+        fi
+          
     - name: Check if RDS instance exists
       id: check-db
       run: |
