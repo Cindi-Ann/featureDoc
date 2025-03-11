@@ -18,6 +18,15 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-session-token:  ${{ secrets.AWS_SESSION_TOKEN }}
         aws-region: ${{ vars.AWS_REGION }}
+        
+    - name: Create DBSubnet Group
+      id: db-subnet-group
+      run: |
+        aws rds create-db-subnet-group \
+        --db-subnet-group-name featuredoc-test-subnet \
+        --db-subnet-group-description "Subnet group for featuredoc" \
+        --subnet-ids subnet-0e6b20217d3f533c0 subnet-0162941dbeab9472e  # Provide your subnet IDs here
+      
     - name: Check if RDS instance exists
       id: check-db
       run: |
@@ -39,7 +48,7 @@ jobs:
           --master-user-password ${{ secrets.DB_MASTER_PASSWORD }} \
           --backup-retention-period 7 \
           --no-multi-az \
-          --db-subnet-group-name featureDoc-test-subnet \
+          --db-subnet-group-name featuredoc-test-subnet \
           --publicly-accessible \
           --vpc-security-group-ids sg-01e3cae7464d21f79
     
