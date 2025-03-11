@@ -74,14 +74,18 @@ jobs:
     - name: Create Initial Database
       run: |
         docker run --rm \
-          -e PGPASSWORD=${{ secrets.DB_MASTER_PASSWORD }} \
-          postgres:alpine \
-          psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -v -c "\
-          SELECT 1 FROM pg_database WHERE datname = 'featureDoc' LIMIT 1;" | grep -q 1 || \
-          docker run --rm \
-          -e PGPASSWORD=${{ secrets.DB_MASTER_PASSWORD }} \
-          postgres:alpine \
-          psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -v -c "CREATE DATABASE featureDoc;"
+        -e PGPASSWORD=${{ secrets.DB_MASTER_PASSWORD }} \
+        postgres:alpine \
+        psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -c "SELECT 1 FROM pg_database WHERE datname = 'featureDoc' LIMIT 1;" \
+        && echo "Database exists, skipping creation." \
+        || (echo "Database does not exist, creating it..." && \
+            docker run --rm \
+            -e PGPASSWORD=${{ secrets.DB_MASTER_PASSWORD }} \
+            postgres:alpine \
+            psql -h ${{ env.RDS_ENDPOINT }} -U ${{ vars.DB_MASTER_USERNAME }} -d postgres -p 5432 -c "CREATE DATABASE featureDoc;" \
+            && echo "Database 'featureDoc' created successfully." \
+            || echo "Failed to create database 'featureDoc'.")
+
 
     - name: Debug Connection String
       run: |
